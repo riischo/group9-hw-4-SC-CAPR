@@ -1,7 +1,6 @@
 s.options.sampleRate_(44100);
-
-s.options.hardwareBufferSize_(256);
-
+s.options.inDevice_("MME : Microphone Array (Realtek(R) Au");
+s.latency = 0.0256;
 ///////////////////BUSSES//////////////////////////////
 ~dryBus = Bus.audio(s,1);
 ~hiOctBusOut = Bus.audio(s,1);
@@ -9,7 +8,8 @@ s.options.hardwareBufferSize_(256);
 ~dryPanBus = Bus.control(s,1);
 ~hiOctPanBus = Bus.control(s,1);
 ~lowOctPanBus = Bus.control(s,1);
-~mixOutBus = Bus.audio(s,2);
+~mixOutBusL = Bus.audio(s,1);
+~mixOutBusR = Bus.audio(s,1);
 
 ///////////////////////GROUPS///////////////////////////////
 // Organizzo i sintetizzatori in Gruppi, in particolare ho :
@@ -21,6 +21,7 @@ s.options.hardwareBufferSize_(256);
 ~panGroup = Group.new(~octaveGroup,\addAfter);
 ~mixGroup = Group.new(~panGroup,\addAfter);
 ~masterGroup = Group.new(~mixGroup,\addAfter);
+
 ///////////////////////SynthDefs////////////////////////////
 
 ///////CLEAN Input//////////
@@ -49,7 +50,6 @@ SynthDef(\lowOctaver, {
 		channelsArray: octaveLow);
 }).add;
 )
-
 (
 SynthDef(\hiOctaver, {
 	arg hiOn = 0, oHmul = 0.5, numHi = 1, output, input;
@@ -68,14 +68,18 @@ SynthDef(\hiOctaver, {
 ///////PAN Synth////////////
 (
 SynthDef.new(\pan, {
-	arg input, panFreq = 0.1, autoPan = 0, panPos = 0, output;
-	var pan, sig;
+	arg panFreq = 1, autoPan = 0, panPos = 0, output;
+	var pan;
 	//If autoPan activated, the pan oscillates L-R; if not it stays in PanPos
-	if(autoPan == 1,
-		{pan = SinOsc.ar(panFreq).bipolar(1)},
-		{pan = panPos});
-	sig = Pan2.kr(input, pan);
-	Out.kr(output, sig);
+	pan = Select.kr(
+		autoPan,
+		[
+			panPos,
+			FSinOsc.kr(panFreq).bipolar(1)
+
+		]
+	);
+ReplaceOut.kr(output,pan);
 }).add;
 )
 ////////////MIX Synth//////////
@@ -83,36 +87,35 @@ SynthDef.new(\pan, {
 SynthDef(\mix, {
 	arg wet = 0.5;
 	var dry = 1.0 - wet;
-	var drySignal, hiOctSignal, lowOctSignal;
-	drySignal = In.ar(~dryBus);
-	hiOctSignal = In.ar(~hiOctBusOut);
-	lowOctSignal = In.ar(~lowOctBusOut);
-	ReplaceOut.ar(
-			bus:~mixOutBus,
-			channelsArray: (((hiOctSignal+lowOctSignal)*wet) + (drySignal*dry))!2);
+	var dryPanned, lowPanned, hiPanned;
+	dryPanned = Pan2.ar(In.ar(~dryBus)*dry,In.kr(~dryPanBus));
+	hiPanned = Pan2.ar(In.ar(~hiOctBusOut)*wet,In.kr(~hiOctPanBus));
+	lowPanned = Pan2.ar(In.ar(~lowOctBusOut)*wet,In.kr(~lowOctPanBus));
+	ReplaceOut.ar(bus:~mixOutBusL,
+		channelsArray:hiPanned[0]+lowPanned[0]+dryPanned[0]);
+	ReplaceOut.ar(bus:~mixOutBusR,
+		channelsArray:hiPanned[1]+lowPanned[1]+dryPanned[1]);
 }).add;
 )
+
+
 ///////////MASTER Synth/////////////
 (
 SynthDef(\master, {
-	var output, input;
-	output = [0,1]; //stereo out
-	input = In.ar(~mixOutBus);
-	Out.ar(output, input);
+	var inputL, inputR;
+	inputL = In.ar(~mixOutBusL);
+	inputR = In.ar(~mixOutBusR);
+	ReplaceOut.ar(0, inputL);
+	ReplaceOut.ar(1, inputR)
 }).add;
 )
-
 ////////////////////////////SYNTHS INSTANCES/////////////////////////
-
 ~drySynth = Synth.new(\cleanInput,[\output, ~dryBus.index],~sourceGroup);
-
 ~hiOctSynth = Synth.new(\hiOctaver,[\input, ~dryBus.index, \output, ~hiOctBusOut.index],~octaveGroup);
 ~lowOctSynth = Synth.new(\lowOctaver,[\input, ~dryBus.index, \output, ~lowOctBusOut.index],~octaveGroup);
-
-~dryPanSynth = Synth.new(\pan,[\input, ~dryBus, \output, ~dryPanBus],~panGroup);
-~hiPanSynth = Synth.new(\pan,[\input, ~hiOctBusOut, \output, ~hiPanBus],~panGroup);
-~lowPanSynth = Synth.new(\pan,[\input, ~lowOctBusOut, \output, ~lowPanBus],~panGroup);
-
+~dryPanSynth = Synth.new(\pan,[\output, ~dryPanBus.index],~panGroup);
+~hiPanSynth = Synth.new(\pan,[\output, ~hiOctPanBus.index],~panGroup);
+~lowPanSynth = Synth.new(\pan,[\output, ~lowOctPanBus.index],~panGroup);
 ~mixSynth = Synth.new(\mix,[],~mixGroup);
 ~masterSynth = Synth.new(\master,[],~masterGroup);
 ////////////////////////////////GUI////////////////////////////////////////////////
@@ -178,10 +181,13 @@ var back_color = Gradient(Color.new255(225, 100, 0), Color.white);
 ~window.front;
 ~window.view.background = back_color;
 
+///////////////////////Other Environment variables//////////
+~freqPanKnob = ControlSpec.new(minval:0.05,maxval: 5,warp: 'exp',step: 0.1,default: 1,units:"Hz");
+
 //OCTAVE (LED + CAPR)
 
 //Importante! Inserire l'immagine capr.jpeg nella cartella images di Supecollider (SuperCollider/Contents/Resources/HelSource/images)
-i = Image.new(SCDoc.helpSourceDir +/+ "images/LOGO capr.jpeg");
+i = Image.new(SCDoc.helpSourceDir +/+ "images/LOGO capr.png");
 i.scalesWhenResized_(true);
 i.setSize(120, (120 / (i.width / i.height)).asInteger);
 
@@ -201,7 +207,12 @@ i.setSize(120, (120 / (i.width / i.height)).asInteger);
 
 //Knob LOW
 ~knob_low_pan_pos = Knob.new(~window, Rect(450*factor, 40*factor, 60*factor, 85*factor));
-~knob_low_pan_pos.valueAction_(0.5);
+~knob_low_pan_pos.centered_(true);
+~knob_low_pan_pos.valueAction_(\pan.asSpec.unmap(0));
+~knob_low_pan_pos.action_({
+	arg obj;
+	~lowPanSynth.set(\panPos, \pan.asSpec.map(obj.value));
+});
 
 kl_title= StaticText.new(~window,Rect(395*factor, 22*factor, 175*factor, 25*factor));
 kl_title.string = "LOW";
@@ -224,8 +235,11 @@ kl_R.align = \center;
 kl_R.font_(Font(font,12*factor));
 
 ~knob_low_pan_freq = Knob.new(~window, Rect(450*factor, 135*factor, 60*factor, 85*factor));
-~knob_low_pan_freq.valueAction_(0.5);
-
+~knob_low_pan_freq.valueAction_(~freqPanKnob.asSpec.unmap(0.5));
+~knob_low_pan_freq.action_({
+	arg obj;
+	~lowPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
+});
 kl_L_f = StaticText.new(~window,Rect(450*factor, 200*factor, 25*factor, 25*factor));
 kl_L_f.string = "L";
 kl_L_f.align = \center;
@@ -243,15 +257,16 @@ kl_R_f.font_(Font(font,12*factor));
 
 ~pan_low_slider = EZSlider.new(~window, Rect(460*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2);
 ~pan_low_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
-~pan_low_slider.action = {
+~pan_low_slider.action_({
 	arg obj;
+	~lowPanSynth.set(\autoPan,obj.value);
 	if (~pan_low_slider.value == 0,
 		{sLow_label1.stringColor = Gradient(back_color, Color.white)},
 		{sLow_label1.stringColor = Color.black});
 	if (~pan_low_slider.value == 1,
 		{sLow_label2.stringColor = Gradient(back_color, Color.white)},
 		{sLow_label2.stringColor = Color.black});
-};
+});
 
 sLow_label1 = StaticText(~window, Rect(460*factor, 225*factor, 40*factor, 20*factor));
 sLow_label1.string = "MANUAL";
@@ -268,8 +283,12 @@ sLow_label2.font = Font(font, 15*factor, True);
 
 //Knob Dry PAN
 ~knob_dry_pan_pos = Knob.new(~window, Rect(565*factor, 40*factor, 60*factor, 85*factor));
-~knob_dry_pan_pos.valueAction_(0.5);
-
+~knob_dry_pan_pos.centered_(true);
+~knob_dry_pan_pos.valueAction_(\pan.asSpec.unmap(0));
+~knob_dry_pan_pos.action_({
+	arg obj;
+	~dryPanSynth.set(\panPos, \pan.asSpec.map(obj.value));
+});
 kdr_title= StaticText.new(~window,Rect(510*factor, 22*factor, 175*factor, 25*factor));
 kdr_title.string = "DRY";
 kdr_title.align = \center;
@@ -291,8 +310,11 @@ kdr_R.align = \center;
 kdr_R.font_(Font(font,12*factor));
 
 ~knob_dry_pan_freq = Knob.new(~window, Rect(565*factor, 135*factor, 60*factor, 85*factor));
-~knob_dry_pan_freq.valueAction_(0.5);
-
+~knob_dry_pan_freq.valueAction_(~freqPanKnob.asSpec.unmap(0.5));
+~knob_dry_pan_freq.action_({
+	arg obj;
+	~dryPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
+});
 kdr_L_f = StaticText.new(~window,Rect(565*factor, 200*factor, 25*factor, 25*factor));
 kdr_L_f.string = "L";
 kdr_L_f.align = \center;
@@ -308,17 +330,20 @@ kdr_R_f.string = "R";
 kdr_R_f.align = \center;
 kdr_R_f.font_(Font(font,12*factor));
 
-~pan_dry_slider = EZSlider.new(~window, Rect(575*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2);
+~pan_dry_slider = EZSlider.new(~window, Rect(575*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2, );
 ~pan_dry_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
-~pan_dry_slider.action = {
+~pan_dry_slider.action_({
 	arg obj;
+	~dryPanSynth.set(\autoPan,obj.value);
+	~dryPanSynth.get(\autoPan, { arg value; ("autoPan is now:" + value).postln; });
 	if (~pan_dry_slider.value == 0,
 		{sDry_label1.stringColor = Gradient(back_color, Color.white)},
 		{sDry_label1.stringColor = Color.black});
 	if (~pan_dry_slider.value == 1,
 		{sDry_label2.stringColor = Gradient(back_color, Color.white)},
 		{sDry_label2.stringColor = Color.black});
-};
+});
+
 sDry_label1 = StaticText(~window, Rect(575*factor, 225*factor, 40*factor, 20*factor));
 sDry_label1.string = "MANUAL";
 sDry_label1.background = back_color;
@@ -332,11 +357,14 @@ sDry_label2.background = back_color;
 sDry_label2.align = \center;
 sDry_label2.font = Font(font, 15*factor, True);
 
-
 //Knob High
 ~knob_high_pan_pos = Knob.new(~window, Rect(680*factor, 40*factor, 60*factor, 85*factor));
-~knob_high_pan_pos.valueAction_(0.5);
-
+~knob_high_pan_pos.centered_(true);
+~knob_high_pan_pos.valueAction_(\pan.asSpec.unmap(0));
+~knob_high_pan_pos.action_({
+	arg obj;
+	~hiPanSynth.set(\panPos, \pan.asSpec.map(obj.value));
+});
 kh_title= StaticText.new(~window,Rect(625*factor, 22*factor, 175*factor, 25*factor));
 kh_title.string = "HIGH";
 kh_title.align = \center;
@@ -358,8 +386,11 @@ kh_R.align = \center;
 kh_R.font_(Font(font,12*factor));
 
 ~knob_high_pan_freq = Knob.new(~window, Rect(680*factor, 135*factor, 60*factor, 85*factor));
-~knob_high_pan_freq.valueAction_(0.5);
-
+~knob_high_pan_freq.valueAction_(~freqPanKnob.asSpec.unmap(0.5));
+~knob_high_pan_freq.action_({
+	arg obj;
+	~highPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
+});
 kh_L_f = StaticText.new(~window,Rect(680*factor, 200*factor, 25*factor, 25*factor));
 kh_L_f.string = "L";
 kh_L_f.align = \center;
@@ -375,18 +406,18 @@ kh_R_f.string = "R";
 kh_R_f.align = \center;
 kh_R_f.font_(Font(font,12*factor));
 
-
 ~pan_high_slider = EZSlider.new(~window, Rect(690*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2);
 ~pan_high_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
-~pan_high_slider.action = {
+~pan_high_slider.action_({
 	arg obj;
+	~hiPanSynth.set(\autoPan,obj.value);
 	if (~pan_high_slider.value == 0,
 		{sHigh_label1.stringColor = Gradient(back_color, Color.white)},
 		{sHigh_label1.stringColor = Color.black});
 	if (~pan_high_slider.value == 1,
 		{sHigh_label2.stringColor = Gradient(back_color, Color.white)},
 		{sHigh_label2.stringColor = Color.black});
-};
+});
 sHigh_label1 = StaticText(~window, Rect(690*factor, 225*factor, 40*factor, 20*factor));
 sHigh_label1.string = "MANUAL";
 sHigh_label1.background = back_color;
@@ -400,12 +431,14 @@ sHigh_label2.background = back_color;
 sHigh_label2.align = \center;
 sHigh_label2.font = Font(font, 15*factor, True);
 
-
-
 //OCTAVE DOWN (KNOB)
 
 ~knob_down = Knob.new(~window, Rect(50*factor, 60*factor, 75*factor, 100*factor));
 ~knob_down.valueAction_(0.5);
+~knob_down.action_({
+	arg obj;
+	~lowOctSynth.set(\oLmul,obj.value);
+});
 
 kd_title= StaticText.new(~window,Rect(0*factor, 25*factor, 175*factor, 25*factor));
 kd_title.string = "OCTAVE DOWN";
@@ -431,7 +464,7 @@ kd_1.font_(Font(font,12*factor));
 
 ~octave_low_slider = EZSlider.new(~window, Rect(67.5*factor, 175*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(2, 1, \lin, 1.0, 0.0,), layout: \line2);
 ~octave_low_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
-~octave_low_slider.action = {
+~octave_low_slider.action_({
 	arg obj;
 	~lowOctSynth.set(\numLow,obj.value);
 	if (~on_off_low.value == 1 && ~octave_low_slider.value == 1,
@@ -441,7 +474,7 @@ kd_1.font_(Font(font,12*factor));
 		{sd_label2.stringColor = Gradient(back_color, Color.white)},
 		{sd_label2.stringColor = Color.black});
 
-};
+});
 
 sd_label1 = StaticText(~window, Rect(67.5*factor, 175*factor, 40*factor, 20*factor));
 sd_label1.string = "-1";
@@ -459,7 +492,7 @@ sd_label2.font = Font(font, 20*factor, True);
 
 ~on_off_low = Button.new(~window, Rect(62.5*factor, 325*factor, 50*factor, 50*factor));
 ~on_off_low.states = [[ "OFF", Color.black, Color.white ], ["ON", Color.black, Color.white]];
-~on_off_low.action = {
+~on_off_low.action_({
 	arg obj;
 	~lowOctSynth.set(\lowOn,obj.value);
 	if (~on_off_low.value == 1,
@@ -550,13 +583,17 @@ sd_label2.font = Font(font, 20*factor, True);
 		{};
 		~window.refresh;
 	);
-};
+});
 ~on_off_low.font = Font(font, 15*factor);
 
 //OCTAVE UP (KNOB)
 
 ~knob_up = Knob.new(~window, Rect(275*factor, 60*factor, 75*factor, 100*factor));
 ~knob_up.valueAction_(0.5);
+~knob_up.action_({
+	arg obj;
+	~hiOctSynth.set(\oHmul,obj.value);
+});
 
 ku_title= StaticText.new(~window,Rect(225*factor, 25*factor, 175*factor, 25*factor));
 ku_title.string = "OCTAVE UP";
@@ -582,7 +619,7 @@ ku_1.font_(Font(font,12*factor));
 
 ~octave_hi_slider = EZSlider.new(~window, Rect(292.5*factor, 175*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 2, \lin, 1.0, 0.0,), layout: \line2);
 ~octave_hi_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
-~octave_hi_slider.action = {
+~octave_hi_slider.action_({
 	arg obj;
 	~hiOctSynth.set(\numHi,obj.value);
 	if (~on_off_hi.value == 1 && ~octave_hi_slider.value == 1,
@@ -591,7 +628,7 @@ ku_1.font_(Font(font,12*factor));
 	if (~on_off_hi.value == 1 && ~octave_hi_slider.value == 2,
 		{su_label2.stringColor = Gradient(back_color, Color.white)},
 		{su_label2.stringColor = Color.black});
-};
+});
 
 su_label1 = StaticText(~window, Rect(292.5*factor, 255*factor, 40*factor, 20*factor));
 su_label1.string = "+1";
@@ -609,7 +646,7 @@ su_label2.font = Font(font, 20*factor, True);
 
 ~on_off_hi = Button.new(~window, Rect(287.5*factor, 325*factor, 50*factor, 50*factor));
 ~on_off_hi.states = [[ "OFF", Color.black, Color.white ], ["ON", Color.black, Color.white]];
-~on_off_hi.action = {
+~on_off_hi.action_({
 	arg obj;
 	~hiOctSynth.set(\hiOn,obj.value);
 	obj.value.postln;
@@ -702,7 +739,7 @@ su_label2.font = Font(font, 20*factor, True);
 		{};
 		~window.refresh;
 	);
-};
+});
 
 ~on_off_hi.font = Font(font, 15*factor);
 
@@ -712,6 +749,10 @@ su_label2.font = Font(font, 20*factor, True);
 
 ~knob_dw = Knob.new(~window, Rect(162.5*factor, 85*factor, 75*factor, 100*factor));
 ~knob_dw.valueAction_(0.5);
+~knob_dw.action_({
+	arg obj;
+	~mixSynth.set(\wet,obj.value);
+});
 
 kg_title= StaticText.new(~window,Rect(100*factor, 60*factor, 200*factor, 25*factor));
 kg_title.string = "MIX";
@@ -732,7 +773,7 @@ kg_wet.font_(Font(font,12*factor));
 //~reset = Button.new(~window, Rect(150*factor, 350*factor, 100*factor, 25*factor));
 ~reset = Button.new(~window, Rect(362.5*factor, 325*factor, 75*factor, 50*factor));
 ~reset.states = [[ "RESET", Color.white, Gradient(Color.black, back_color) ]];
-~reset.action = {
+~reset.action_({
 	arg obj;
 
 	//OCT and MIX RESET
@@ -813,7 +854,7 @@ kg_wet.font_(Font(font,12*factor));
 	if (~pan_high_slider.value == 1,
 		{sHigh_label2.stringColor = Gradient(back_color, Color.white)},
 		{sHigh_label2.stringColor = Color.black});
-};
+});
 ~reset.font = Font(font, 15*factor);
 
 
@@ -831,20 +872,4 @@ logoP_title= StaticText.new(~window,Rect(500*factor, 320*factor, 175*factor, 50*
 logoP_title.string = "CAPR PANNATORE";
 logoP_title.align = \center;
 logoP_title.font_(Font(font_logo,22*factor, true));
-
-
-//KNOB ACTIONS
-~knob_down.action_({
-	arg obj;
-	~lowOctSynth.set(\oLmul,obj.value);
-});
-~knob_up.action_({
-	arg obj;
-	~hiOctSynth.set(\oHmul,obj.value);
-});
-~knob_dw.action_({
-	arg obj;
-	~mixSynth.set(\wet,obj.value);
-});
 )
-
