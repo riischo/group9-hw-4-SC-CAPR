@@ -186,7 +186,7 @@ var back_color = Gradient(Color.new255(225, 100, 0), Color.white);
 
 //OCTAVE (LED + CAPR)
 
-//Importante! Inserire l'immagine capr.jpeg nella cartella images di Supecollider (SuperCollider/Contents/Resources/HelSource/images)
+//Importante! Inserire l'immagine LOGO capr.png nella cartella images di Supecollider (SuperCollider/Contents/Resources/HelSource/images)
 i = Image.new(SCDoc.helpSourceDir +/+ "images/LOGO capr.png");
 i.scalesWhenResized_(true);
 i.setSize(120, (120 / (i.width / i.height)).asInteger);
@@ -226,6 +226,7 @@ kl_L.font_(Font(font,12*factor));
 
 kl_POS = StaticText.new(~window,Rect(467.5*factor, 110*factor, 25*factor, 25*factor));
 kl_POS.string = "PAN";
+kl_POS.stringColor = Gradient(back_color, Color.white);
 kl_POS.align = \center;
 kl_POS.font_(Font(font,12*factor, true));
 
@@ -240,20 +241,20 @@ kl_R.font_(Font(font,12*factor));
 	arg obj;
 	~lowPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
 });
-kl_L_f = StaticText.new(~window,Rect(450*factor, 200*factor, 25*factor, 25*factor));
-kl_L_f.string = "L";
+kl_L_f = StaticText.new(~window,Rect(435*factor, 200*factor, 35*factor, 25*factor));
+kl_L_f.string = "0.05 Hz";
 kl_L_f.align = \center;
-kl_L_f.font_(Font(font,12*factor));
+kl_L_f.font_(Font(font,9*factor));
 
 kl_FREQ = StaticText.new(~window,Rect(467.5*factor, 205*factor, 25*factor, 25*factor));
 kl_FREQ.string = "FREQ";
 kl_FREQ.align = \center;
 kl_FREQ.font_(Font(font,12*factor, true));
 
-kl_R_f = StaticText.new(~window,Rect(485*factor, 200*factor, 25*factor, 25*factor));
-kl_R_f.string = "R";
+kl_R_f = StaticText.new(~window,Rect(485*factor, 200*factor, 35*factor, 25*factor));
+kl_R_f.string = "5 Hz";
 kl_R_f.align = \center;
-kl_R_f.font_(Font(font,12*factor));
+kl_R_f.font_(Font(font,9*factor));
 
 ~pan_low_slider = EZSlider.new(~window, Rect(460*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2);
 ~pan_low_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
@@ -261,14 +262,18 @@ kl_R_f.font_(Font(font,12*factor));
 	arg obj;
 	~lowPanSynth.set(\autoPan,obj.value);
 	if (~pan_low_slider.value == 0,
-		{sLow_label1.stringColor = Gradient(back_color, Color.white)},
-		{sLow_label1.stringColor = Color.black});
+		{sLow_label1.stringColor = Gradient(back_color, Color.white);
+			kl_POS.stringColor = Gradient(back_color, Color.white);},
+		{sLow_label1.stringColor = Color.black;
+			kl_POS.stringColor = Color.black;});
 	if (~pan_low_slider.value == 1,
-		{sLow_label2.stringColor = Gradient(back_color, Color.white)},
-		{sLow_label2.stringColor = Color.black});
+		{sLow_label2.stringColor = Gradient(back_color, Color.white);
+			kl_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sLow_label2.stringColor = Color.black;
+			kl_FREQ.stringColor = Color.black;});
 });
 
-sLow_label1 = StaticText(~window, Rect(460*factor, 225*factor, 40*factor, 20*factor));
+sLow_label1 = StaticText(~window, Rect(460*factor, 225*factor, 45*factor, 20*factor));
 sLow_label1.string = "MANUAL";
 sLow_label1.background = back_color;
 sLow_label1.stringColor = Gradient(back_color, Color.white);
@@ -301,6 +306,7 @@ kdr_L.font_(Font(font,12*factor));
 
 kdr_POS = StaticText.new(~window,Rect(582.5*factor, 110*factor, 25*factor, 25*factor));
 kdr_POS.string = "PAN";
+kdr_POS.stringColor = Gradient(back_color, Color.white);
 kdr_POS.align = \center;
 kdr_POS.font_(Font(font,12*factor, true));
 
@@ -315,20 +321,20 @@ kdr_R.font_(Font(font,12*factor));
 	arg obj;
 	~dryPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
 });
-kdr_L_f = StaticText.new(~window,Rect(565*factor, 200*factor, 25*factor, 25*factor));
-kdr_L_f.string = "L";
+kdr_L_f = StaticText.new(~window,Rect(550*factor, 200*factor, 35*factor, 25*factor));
+kdr_L_f.string = "0.05 Hz";
 kdr_L_f.align = \center;
-kdr_L_f.font_(Font(font,12*factor));
+kdr_L_f.font_(Font(font,9*factor));
 
 kdr_FREQ = StaticText.new(~window,Rect(582.5*factor, 205*factor, 25*factor, 25*factor));
 kdr_FREQ.string = "FREQ";
 kdr_FREQ.align = \center;
 kdr_FREQ.font_(Font(font,12*factor, true));
 
-kdr_R_f = StaticText.new(~window,Rect(600*factor, 200*factor, 25*factor, 25*factor));
-kdr_R_f.string = "R";
+kdr_R_f = StaticText.new(~window,Rect(600*factor, 200*factor, 35*factor, 25*factor));
+kdr_R_f.string = "5 Hz";
 kdr_R_f.align = \center;
-kdr_R_f.font_(Font(font,12*factor));
+kdr_R_f.font_(Font(font,9*factor));
 
 ~pan_dry_slider = EZSlider.new(~window, Rect(575*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2, );
 ~pan_dry_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
@@ -337,14 +343,18 @@ kdr_R_f.font_(Font(font,12*factor));
 	~dryPanSynth.set(\autoPan,obj.value);
 	~dryPanSynth.get(\autoPan, { arg value; ("autoPan is now:" + value).postln; });
 	if (~pan_dry_slider.value == 0,
-		{sDry_label1.stringColor = Gradient(back_color, Color.white)},
-		{sDry_label1.stringColor = Color.black});
+		{sDry_label1.stringColor = Gradient(back_color, Color.white);
+			kdr_POS.stringColor = Gradient(back_color, Color.white);},
+		{sDry_label1.stringColor = Color.black;
+			kdr_POS.stringColor = Color.black;});
 	if (~pan_dry_slider.value == 1,
-		{sDry_label2.stringColor = Gradient(back_color, Color.white)},
-		{sDry_label2.stringColor = Color.black});
+		{sDry_label2.stringColor = Gradient(back_color, Color.white);
+			kdr_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sDry_label2.stringColor = Color.black;
+			kdr_FREQ.stringColor = Color.black;});
 });
 
-sDry_label1 = StaticText(~window, Rect(575*factor, 225*factor, 40*factor, 20*factor));
+sDry_label1 = StaticText(~window, Rect(575*factor, 225*factor, 45*factor, 20*factor));
 sDry_label1.string = "MANUAL";
 sDry_label1.background = back_color;
 sDry_label1.stringColor = Gradient(back_color, Color.white);
@@ -377,6 +387,7 @@ kh_L.font_(Font(font,12*factor));
 
 kh_POS = StaticText.new(~window,Rect(697.5*factor, 110*factor, 25*factor, 25*factor));
 kh_POS.string = "PAN";
+kh_POS.stringColor = Gradient(back_color, Color.white);
 kh_POS.align = \center;
 kh_POS.font_(Font(font,12*factor, true));
 
@@ -391,20 +402,20 @@ kh_R.font_(Font(font,12*factor));
 	arg obj;
 	~highPanSynth.set(\panFreq, ~freqPanKnob.asSpec.map(obj.value));
 });
-kh_L_f = StaticText.new(~window,Rect(680*factor, 200*factor, 25*factor, 25*factor));
-kh_L_f.string = "L";
+kh_L_f = StaticText.new(~window,Rect(665*factor, 200*factor, 35*factor, 25*factor));
+kh_L_f.string = "0.05 Hz";
 kh_L_f.align = \center;
-kh_L_f.font_(Font(font,12*factor));
+kh_L_f.font_(Font(font,9*factor));
 
 kh_FREQ = StaticText.new(~window,Rect(697.5*factor, 205*factor, 25*factor, 25*factor));
 kh_FREQ.string = "FREQ";
 kh_FREQ.align = \center;
 kh_FREQ.font_(Font(font,12*factor, true));
 
-kh_R_f = StaticText.new(~window,Rect(715*factor, 200*factor, 25*factor, 25*factor));
-kh_R_f.string = "R";
+kh_R_f = StaticText.new(~window,Rect(715*factor, 200*factor, 35*factor, 25*factor));
+kh_R_f.string = "5 Hz";
 kh_R_f.align = \center;
-kh_R_f.font_(Font(font,12*factor));
+kh_R_f.font_(Font(font,9*factor));
 
 ~pan_high_slider = EZSlider.new(~window, Rect(690*factor, 225*factor, 40*factor, 80*factor), controlSpec: ControlSpec.new(1, 0, \lin, 1.0, 0.0,), layout: \line2);
 ~pan_high_slider.setColors(sliderBackground: Gradient(Color.black, back_color), numBackground: back_color, knobColor: Color.black);
@@ -412,13 +423,17 @@ kh_R_f.font_(Font(font,12*factor));
 	arg obj;
 	~hiPanSynth.set(\autoPan,obj.value);
 	if (~pan_high_slider.value == 0,
-		{sHigh_label1.stringColor = Gradient(back_color, Color.white)},
-		{sHigh_label1.stringColor = Color.black});
+		{sHigh_label1.stringColor = Gradient(back_color, Color.white);
+			kh_POS.stringColor = Gradient(back_color, Color.white);},
+		{sHigh_label1.stringColor = Color.black;
+			kh_POS.stringColor = Color.black;});
 	if (~pan_high_slider.value == 1,
-		{sHigh_label2.stringColor = Gradient(back_color, Color.white)},
-		{sHigh_label2.stringColor = Color.black});
+		{sHigh_label2.stringColor = Gradient(back_color, Color.white);
+			kh_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sHigh_label2.stringColor = Color.black;
+			kh_FREQ.stringColor = Color.black;});
 });
-sHigh_label1 = StaticText(~window, Rect(690*factor, 225*factor, 40*factor, 20*factor));
+sHigh_label1 = StaticText(~window, Rect(690*factor, 225*factor, 45*factor, 20*factor));
 sHigh_label1.string = "MANUAL";
 sHigh_label1.background = back_color;
 sHigh_label1.stringColor = Gradient(back_color, Color.white);
@@ -835,25 +850,37 @@ kg_wet.font_(Font(font,12*factor));
 		{su_label2.stringColor = Color.black});
 
 	if (~pan_low_slider.value == 0,
-		{sLow_label1.stringColor = Gradient(back_color, Color.white)},
-		{sLow_label1.stringColor = Color.black});
+		{sLow_label1.stringColor = Gradient(back_color, Color.white);
+			kl_POS.stringColor = Gradient(back_color, Color.white);},
+		{sLow_label1.stringColor = Color.black;
+			kl_POS.stringColor = Color.black};);
 	if (~pan_low_slider.value == 1,
-		{sLow_label2.stringColor = Gradient(back_color, Color.white)},
-		{sLow_label2.stringColor = Color.black});
+		{sLow_label2.stringColor = Gradient(back_color, Color.white);
+			kl_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sLow_label2.stringColor = Color.black;
+			kl_FREQ.stringColor = Color.black};);
 
 	if (~pan_dry_slider.value == 0,
-		{sDry_label1.stringColor = Gradient(back_color, Color.white)},
-		{sDry_label1.stringColor = Color.black});
+		{sDry_label1.stringColor = Gradient(back_color, Color.white);
+			kdr_POS.stringColor = Gradient(back_color, Color.white);},
+		{sDry_label1.stringColor = Color.black;
+			kdr_POS.stringColor = Color.black};);
 	if (~pan_dry_slider.value == 1,
-		{sDry_label2.stringColor = Gradient(back_color, Color.white)},
-		{sDry_label2.stringColor = Color.black});
+		{sDry_label2.stringColor = Gradient(back_color, Color.white);
+			kdr_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sDry_label2.stringColor = Color.black;
+			kdr_FREQ.stringColor = Color.black};);
 
 	if (~pan_high_slider.value == 0,
-		{sHigh_label1.stringColor = Gradient(back_color, Color.white)},
-		{sHigh_label1.stringColor = Color.black});
+		{sHigh_label1.stringColor = Gradient(back_color, Color.white);
+			kh_POS.stringColor = Gradient(back_color, Color.white);},
+		{sHigh_label1.stringColor = Color.black;
+			kh_POS.stringColor = Color.black};);
 	if (~pan_high_slider.value == 1,
-		{sHigh_label2.stringColor = Gradient(back_color, Color.white)},
-		{sHigh_label2.stringColor = Color.black});
+		{sHigh_label2.stringColor = Gradient(back_color, Color.white);
+			kh_FREQ.stringColor = Gradient(back_color, Color.white);},
+		{sHigh_label2.stringColor = Color.black;
+			kh_FREQ.stringColor = Color.black};);
 });
 ~reset.font = Font(font, 15*factor);
 
