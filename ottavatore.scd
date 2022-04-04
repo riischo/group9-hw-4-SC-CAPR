@@ -10,9 +10,6 @@
 ~mixOutBusR = Bus.audio(s,1);
 
 ///////////////////////GROUPS///////////////////////////////
-// Organizzo i sintetizzatori in Gruppi, in particolare ho :
-//1)sourceGroup per i Synth delle ottave alte e basse;
-//2)panGroup per i Synth del Pan,successivo a quello delle ottave;
 
 ~sourceGroup = Group.new;
 ~octaveGroup = Group.new(~sourceGroup, \addAfter);

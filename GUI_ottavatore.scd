@@ -66,9 +66,7 @@ var back_color = Gradient(Color.new255(225, 100, 0), Color.white);
 
 //OCTAVE (LED + CAPR)
 
-
-//Importante! Inserire l'immagine LOGO capr.png nella cartella images di Supecollider (SuperCollider/Contents/Resources/HelSource/images)
-~pathImg = File.getcwd ++ "\\images\\LOGO capr.png";
+~pathImg = thisProcess.nowExecutingPath.dirname ++ "/images/LOGO capr.png";
 i = Image.new(~pathImg);
 i.scalesWhenResized_(true);
 i.setSize(165, (165 / (i.width / i.height)).asInteger);

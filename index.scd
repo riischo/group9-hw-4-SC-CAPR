@@ -8,8 +8,8 @@ s.reboot;
 
 //wait for the server to start properly and boot the Ottavatore
 (
-~pathGUI = File.getcwd ++ "\\GUI_ottavatore.scd";
-~pathSynths = File.getcwd ++ "\\ottavatore.scd";
-~pathSynths.load;
+~pathGUI = thisProcess.nowExecutingPath.dirname ++ "/GUI_ottavatore.scd";
+~pathSynths = thisProcess.nowExecutingPath.dirname ++ "/ottavatore.scd";
 ~pathGUI.load;
+~pathSynths.load;
 )
