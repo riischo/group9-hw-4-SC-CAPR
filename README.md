@@ -29,7 +29,7 @@ The panning section permits to control the panning parameters for each voice tha
 * *PAN:* a knob for modifying the position of the voice in the stereo field; this knob becomes active only when the switch of the voice is set on "manual".
 * *FREQ:* this knob regulates the oscillation frequency (in Hz) of the voice from left to right when the switch is set on "AUTO" mode. It goes from a minimum of 0.05Hz to a maximum of 5Hz.
 ### Reset
-This button resets all the knobs and all the switches to default settings, in order not to set manually all the parameters to their initial state when it is needed. This button does not change the on/off octave buttons states.
+This button resets all the knobs and all the switches to default settings, in order not to set manually all the parameters to their default state when needed. This button does not change the on/off octave buttons states.
 
 ## Boot and use the Ottavatore (IMPORTANT)
 * Download all the files and folders from the repository.
