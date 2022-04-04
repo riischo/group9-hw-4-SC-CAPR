@@ -36,6 +36,7 @@ This button resets all the knobs and all the switches to default settings, in or
 * Make sure to have downloaded "Chiller" and "Harrington" fonts in order to visualize the GUI in the correct way.
 * Open *index.scd* using SuperCollider.
 * Interprete the two blocks in the order they are written in the file. After this, the dry signal of the source should be audible. If not, repeat the interpretation procedure until it works.
+* If anybody finds any bug, please let us know and we will be glad to solve it!
 
 # ENJOY!
 
